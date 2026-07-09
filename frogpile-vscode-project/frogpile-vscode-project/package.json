@@ -1,0 +1,10 @@
+{
+  "name": "frogpile-vscode-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VS Code project wrapper for the Frogpile HTML game.",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "devDependencies": {}
+}
