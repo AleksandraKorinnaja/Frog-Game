@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -126,16 +126,16 @@
   .upgrade-row .info{font-size:13px;}
   .upgrade-row .info b{display:block;font-size:13px;color:var(--moss-dark);}
   .upgrade-row .info span{font-size:11px;color:var(--ink-soft);}
-  .upgrade-row.tutorial-lilypad-target{position:relative;}
+  .upgrade-row.tutorial-lilypad-target{position:relative;overflow:visible;}
+  .upgrade-row.tutorial-lilypad-target .buy{margin-right:34px;}
   .tutorial-buy-arrow{
     position:absolute;
-    right:122px;
+    right:10px;
     top:50%;
     transform:translateY(-50%);
-    font-size:24px;
-    font-weight:800;
-    color:#E88E2C;
-    text-shadow:0 0 10px rgba(255,200,120,0.85);
+    width:28px;
+    height:28px;
+    background:url('assets/icons/arrow.png') center/contain no-repeat;
     animation:tutorialArrowNudge .9s ease-in-out infinite;
     pointer-events:none;
   }
@@ -365,15 +365,24 @@
   }
   .toast.show{opacity:1;}
   .tutorial-tip{
-    position:fixed;top:100px;left:50%;transform:translateX(-50%);
-    max-width:320px;width:86%;
-    background:var(--card);border:3px solid var(--wood);border-radius:16px;
-    padding:12px 16px;box-shadow:0 6px 14px rgba(122,82,50,0.28);
-    z-index:95;text-align:center;
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:min(92vw,620px);
+    min-height:180px;
+    background:url('assets/icons/textbox.png') center/100% 100% no-repeat;
+    border:none;
+    border-radius:0;
+    padding:34px 40px 28px;
+    box-shadow:none;
+    z-index:95;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
   }
-  .tutorial-tip-text{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:14px;color:var(--moss-dark);line-height:1.4;}
+  .tutorial-tip-text{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:clamp(20px,2.5vw,28px);color:#4A3423;line-height:1.28;max-width:94%;}
   .tutorial-got-it{
-    margin-top:8px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;
+    margin-top:12px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;
     border:3px solid var(--btn-border);border-radius:999px;padding:6px 16px;cursor:pointer;
     background:linear-gradient(180deg,var(--btn-fill) 0%,var(--btn-fill-2) 100%);color:var(--btn-text);
     box-shadow:0 3px 0 var(--btn-shadow);
@@ -1434,7 +1443,7 @@ const COSMETICS={
   ],
   pond:[
     {id:'default',name:'Summer Pond',cost:null,filter:'none',desc:"warm and green, as ponds should be."},
-    {id:'autumn',name:'Autumn Pond',cost:{eggs:6,flies:60,gems:0},filter:'hue-rotate(-35deg) saturate(1.2)',desc:"leaves drifting on the water."},
+    {id:'autumn',name:'Autumn Pond',cost:null,filter:'none',desc:"leaves drifting on the water."},
     {id:'moonlit',name:'Moonlit Pond',cost:{eggs:11,flies:110,gems:4},filter:'hue-rotate(190deg) saturate(0.85) brightness(0.78)',desc:"still and silver under the moon."},
     {id:'blossom',name:'Blossom Pond',cost:{eggs:18,flies:160,gems:8},filter:'hue-rotate(285deg) saturate(1.35) brightness(1.05)',desc:"petals scattered across the lilypads."},
   ],
@@ -1458,6 +1467,11 @@ function equippedCosmetic(cat){
   return getCosmetic(cat,state.equippedCosmetics[cat]||'default');
 }
 function cosmeticFilter(cat){return equippedCosmetic(cat).filter||'none';}
+function pondBaseImage(){
+  return equippedCosmetic('pond').id==='autumn'
+    ? 'assets/shop/floor_base_autumn.png'
+    : 'assets/floor_base.png';
+}
 function isCosmeticOwned(cat,id){return ((state.ownedCosmetics&&state.ownedCosmetics[cat])||['default']).includes(id);}
 function canAffordCosmetic(cost){
   if(!cost) return true;
@@ -1468,21 +1482,34 @@ function buyCosmetic(cat,id){
   if(!item) return;
   if(isCosmeticOwned(cat,id)){ equipCosmetic(cat,id); return; }
   if(!canAffordCosmetic(item.cost)){ showToast("you can't afford that yet."); return; }
-  state.eggTokens=(state.eggTokens||0)-(item.cost.eggs||0);
-  state.flies-=(item.cost.flies||0);
-  state.gems=(state.gems||0)-(item.cost.gems||0);
+  const cost=item.cost||{};
+  state.eggTokens=(state.eggTokens||0)-(cost.eggs||0);
+  state.flies-=(cost.flies||0);
+  state.gems=(state.gems||0)-(cost.gems||0);
   if(!state.ownedCosmetics) state.ownedCosmetics={witch:['default'],cauldron:['default'],pond:['default']};
+  if(!state.equippedCosmetics) state.equippedCosmetics={witch:'default',cauldron:'default',pond:'default'};
   if(!state.ownedCosmetics[cat]) state.ownedCosmetics[cat]=['default'];
-  state.ownedCosmetics[cat].push(id);
+  if(!state.ownedCosmetics[cat].includes(id)) state.ownedCosmetics[cat].push(id);
   state.equippedCosmetics[cat]=id;
-  showToast(`bought and equipped ${item.name}!`);
+  if(state.tutorialStep==='buy_equip_autumn' && cat==='pond' && id==='autumn'){
+    state.tutorialStep='done';
+    showToast('awesome - autumn pond equipped! tutorial complete.');
+  }else{
+    showToast(`bought and equipped ${item.name}!`);
+  }
   queueSave();
   render();
 }
 function equipCosmetic(cat,id){
   if(!isCosmeticOwned(cat,id)) return;
+  if(!state.equippedCosmetics) state.equippedCosmetics={witch:'default',cauldron:'default',pond:'default'};
   state.equippedCosmetics[cat]=id;
-  showToast(`equipped ${item_name(cat,id)}`);
+  if(state.tutorialStep==='buy_equip_autumn' && cat==='pond' && id==='autumn'){
+    state.tutorialStep='done';
+    showToast('awesome - autumn pond equipped! tutorial complete.');
+  }else{
+    showToast(`equipped ${item_name(cat,id)}`);
+  }
   queueSave();
   render();
 }
@@ -1605,7 +1632,7 @@ function breedRarity(a,b){
   return RARITY_ORDER[avg];
 }
 
-const TUTORIAL_ORDER=['lay_first_egg','hatch_first_egg','lay_second_egg','hatch_second_egg','intro_cauldron','reveal_nav','watch_upgrade','done'];
+const TUTORIAL_ORDER=['lay_first_egg','hatch_first_egg','lay_second_egg','hatch_second_egg','intro_cauldron','reveal_nav','watch_upgrade','unlock_lilypads','unlock_breeding','place_frogs_breeding','sacrifice_for_currency','buy_equip_autumn','done'];
 function tutIndex(){return TUTORIAL_ORDER.indexOf(state.tutorialStep||'done');}
 function tutVisible(part){
   const idx=tutIndex();
@@ -1629,7 +1656,7 @@ function advanceTutorial(){
 }
 function checkTutorialUpgradeReveal(){
   if(state.tutorialStep==='watch_upgrade' && upgradesAvailable()){
-    state.tutorialStep='done';
+    state.tutorialStep='unlock_lilypads';
     queueSave();
     showToast('your first upgrade is ready!');
     openSheet('upgrades');
@@ -1642,10 +1669,16 @@ function pondBottomOffset(){return tutVisible('nav')?NAV_HEIGHT:0;}
 const TUTORIAL_TEXT={
   lay_first_egg:{text:"Tap the lily pad below to lay your very first egg!"},
   hatch_first_egg:{text:"Tap the egg 4 times to hatch it!"},
-  lay_second_egg:{text:"Your first frog hatched! Lay another egg to grow your colony."},
-  hatch_second_egg:{text:"Tap this one 4 times too\u2026 you never know what you'll get!"},
-  intro_cauldron:{text:"This is your cauldron. Drag any frog onto it to trade it for flies!",dismiss:true},
-  reveal_nav:{text:"Use these tabs to check your Colony, Grimoire, and Shop any time.",dismiss:true},
+  lay_second_egg:{text:"Your first frog hatched! Lay one more egg now. This second hatch sets up your first important lilypad upgrade."},
+  hatch_second_egg:{text:"Tap this one 4 times too. Your next goal is the second lilypad upgrade, then unlock breeding."},
+  intro_cauldron:{text:"This is your cauldron. Drag frogs here for flies so you can afford upgrades and push toward the breeding lilypad.",dismiss:true},
+  reveal_nav:{text:"Use these tabs for Colony, Grimoire, and Shop. Then buy your second lilypad and prioritize unlocking breeding.",dismiss:true},
+  watch_upgrade:{text:"Priority: buy More lilypads first (your second lilypad). Then save gems for the Breeding lilypad, the core system for mixing frog DNA and discovering new traits."},
+  unlock_lilypads:{text:"Buy more lilypads so your pond can hold more frogs!"},
+  unlock_breeding:{text:"Now buy the breeding lilypad to start combining frogs together!"},
+  place_frogs_breeding:{text:"Drag two frogs onto the breeding pad to breed them into a new one!"},
+  sacrifice_for_currency:{text:"Great! Now sacrifice unwanted frogs in the cauldron to earn currency."},
+  buy_equip_autumn:{text:"This is the shop where you spend currency. Buy and equip the Autumn Pond now."},
 };
 function renderTutorialTip(){
   const t=TUTORIAL_TEXT[state.tutorialStep];
@@ -1806,6 +1839,12 @@ function confirmSacrifice(evt){
   spawnFloatText(`+${amt} \u{1FAB0}`, sx, sy, '#B8860B');
   const cp=cauldronPoint();
   spawnCauldronBubbles(cp.x,cp.y);
+  if(state.tutorialStep==='sacrifice_for_currency'){
+    state.tutorialStep='buy_equip_autumn';
+    shopTab='pond';
+    activeSheet='shop';
+    showToast('nice! now open Pond in the shop and equip Autumn Pond.');
+  }
   queueSave();
   if(!checkTutorialUpgradeReveal()) render();
 }
@@ -1824,6 +1863,10 @@ function buyLilypad(){
   if(state.flies<cost) return;
   state.flies-=cost;
   state.lilypadLevel++;
+  if(state.tutorialStep==='unlock_lilypads'){
+    state.tutorialStep='unlock_breeding';
+    showToast('great! now unlock the breeding lilypad.');
+  }
   queueSave();
   if(!checkTutorialUpgradeReveal()) render();
 }
@@ -1848,7 +1891,13 @@ function buyBreedingPad(){
   if((state.gems||0)<breedingCost()) return;
   state.gems-=breedingCost();
   state.breedingUnlocked=true;
-  showToast('the breeding lilypad shimmers to life!');
+  if(state.tutorialStep==='unlock_breeding'){
+    state.tutorialStep='place_frogs_breeding';
+    showToast('breeding unlocked! drag two frogs onto the breeding pad.');
+  }else{
+    showToast('the breeding lilypad shimmers to life!');
+  }
+  activeSheet=null;
   queueSave();
   if(!checkTutorialUpgradeReveal()) render();
 }
@@ -2073,7 +2122,7 @@ function renderPondStage(){
       <div class="label">${waitingFrog?'tap to cancel':'breed'}</div></div>`;
   }
   return `<div class="pond-stage" style="bottom:${pondBottomOffset()}px;">
-    <div class="pond-water" style="filter:${cosmeticFilter('pond')};--phase-water:${waterPhase};--phase-shimmer:${shimmerPhase};--phase-float:${floatPhase};--phase-sparkle-fade:${sparkleFadePhase};--phase-sparkle-drift:${sparkleDriftPhase};--phase-sparkle-mask:${sparkleMaskPhase};--phase-sparkle-heat:${sparkleHeatPhase};">
+    <div class="pond-water" style="filter:${cosmeticFilter('pond')};background-image:url('${pondBaseImage()}');--phase-water:${waterPhase};--phase-shimmer:${shimmerPhase};--phase-float:${floatPhase};--phase-sparkle-fade:${sparkleFadePhase};--phase-sparkle-drift:${sparkleDriftPhase};--phase-sparkle-mask:${sparkleMaskPhase};--phase-sparkle-heat:${sparkleHeatPhase};">
       <div class="pond-floor-lily l1"></div>
       <div class="pond-floor-lily l2"></div>
       <div class="pond-floor-lily l3"></div>
@@ -2523,6 +2572,12 @@ function dragSacrifice(frogId,clientX,clientY){
   playHatchBurst('cursed',clientX,clientY);
   const cp=cauldronPoint();
   spawnCauldronBubbles(cp.x,cp.y);
+  if(state.tutorialStep==='sacrifice_for_currency'){
+    state.tutorialStep='buy_equip_autumn';
+    shopTab='pond';
+    activeSheet='shop';
+    showToast('nice! now open Pond in the shop and equip Autumn Pond.');
+  }
   queueSave();
   if(!checkTutorialUpgradeReveal()) render();
 }
@@ -2567,6 +2622,10 @@ function dragToBreeding(frogId,clientX,clientY){
         showToast(`new trait discovered: ${newTraits.map(t=>t.value).join(', ')}!`);
       }else{
         showToast(`bred a ${childColor} ${childRarity} frog!`);
+      }
+      if(state.tutorialStep==='place_frogs_breeding'){
+        state.tutorialStep='sacrifice_for_currency';
+        showToast('breeding complete! now sacrifice unwanted frogs for currency.');
       }
     }
     queueSave();
@@ -2915,30 +2974,33 @@ function renderUpgrades(){
   const plc=premiumLilyCost(state);
   const premiumMaxed=pondSlots(state)>=LILY_POS_COUNT;
   const bc=breedingCost();
+  const tutorialUpgradeOnly=['watch_upgrade','unlock_lilypads','unlock_breeding','place_frogs_breeding'].includes(state.tutorialStep);
   const tutorialLilyArrow=(state.flies>=sc)
-    && (state.tutorialStep==='watch_upgrade' || (state.tutorialStep==='done' && state.lilypadLevel===0 && state.totalHatched<=2));
+    && (state.tutorialStep==='watch_upgrade' || state.tutorialStep==='unlock_lilypads' || (state.tutorialStep==='done' && state.lilypadLevel===0 && state.totalHatched<=2));
+  const tutorialBreedArrow=!state.breedingUnlocked && (state.gems||0)>=bc && state.tutorialStep==='unlock_breeding';
   return `
   <div class="upgrades">
-    <div class="upgrade-row">
+    ${tutorialUpgradeOnly?'':`<div class="upgrade-row">
       <div class="info"><b>Widen the pond</b><span>${pondSlots(state)} spots &rarr; ${pondMaxed?'max':(pondSlots(state)+1)}</span></div>
       <button class="buy" ${state.flies<nc||pondMaxed?'disabled':''} onclick="buyPond()">${pondMaxed?'max':nc+' &#129370;'}</button>
-    </div>
+    </div>`}
     <div class="upgrade-row ${tutorialLilyArrow?'tutorial-lilypad-target':''}">
-      <div class="info"><b>More lilypads</b><span>${lilypadCap(state)} &rarr; ${lilypadCap(state)+4} frogs${pondMaxed?'':' +1 lilypad'}</span></div>
-      ${tutorialLilyArrow?'<span class="tutorial-buy-arrow" aria-hidden="true">&rarr;</span>':''}
+      <div class="info"><b>More lilypads (priority)</b><span>${lilypadCap(state)} &rarr; ${lilypadCap(state)+4} frogs${pondMaxed?'':' +1 lilypad'} - buy this second lilypad first</span></div>
+      ${tutorialLilyArrow?'<span class="tutorial-buy-arrow" aria-hidden="true"></span>':''}
       <button class="buy" ${state.flies<sc?'disabled':''} onclick="buyLilypad()">${sc} &#129370;</button>
     </div>
-    <div class="upgrade-row">
+    ${tutorialUpgradeOnly?'':`<div class="upgrade-row">
       <div class="info"><b>Faster hatching</b><span>${Math.round(hatchTime(state)/1000)}s &rarr; ${speedMaxed?'max':Math.round(hatchTime(state)*0.85/1000)+'s'}</span></div>
       <button class="buy" ${state.flies<spc||speedMaxed?'disabled':''} onclick="buySpeed()">${speedMaxed?'max':spc+' &#129370;'}</button>
     </div>
     <div class="upgrade-row premium">
       <div class="info"><b>Premium lilypad</b><span>${premiumMaxed?'max spots reached':`${pondSlots(state)} &rarr; ${pondSlots(state)+1} spots`}</span></div>
       <button class="buy" ${(state.gems||0)<plc||premiumMaxed?'disabled':''} onclick="buyPremiumLily()">${premiumMaxed?'max':plc+' &#128142;'}</button>
-    </div>
+    </div>`}
     ${!state.breedingUnlocked?`
-    <div class="upgrade-row premium">
-      <div class="info"><b>Breeding lilypad</b><span>drag two frogs together to mix them into one</span></div>
+    <div class="upgrade-row premium ${tutorialBreedArrow?'tutorial-lilypad-target':''}">
+      <div class="info"><b>Breeding lilypad (core system)</b><span>drag two frogs together to mix DNA, create new combinations, and drive progression</span></div>
+      ${tutorialBreedArrow?'<span class="tutorial-buy-arrow" aria-hidden="true"></span>':''}
       <button class="buy" ${(state.gems||0)<bc?'disabled':''} onclick="buyBreedingPad()">${bc} &#128142;</button>
     </div>`:''}
   </div>`;
